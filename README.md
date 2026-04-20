@@ -1,0 +1,2 @@
+# HeapScope
+Memory leak detector
