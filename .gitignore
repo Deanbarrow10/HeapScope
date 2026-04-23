@@ -2,5 +2,5 @@
 .swiftpm/
 *.xcodeproj/
 DerivedData/
-leaks.json
+/leaks.json
 *.dSYM/
