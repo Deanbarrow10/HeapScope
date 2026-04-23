@@ -94,40 +94,51 @@ The three leaked allocations are: the plain orphan block (`malloc(64)`) and the 
 
 ## 4. Visualize the leaks
 
-Two options. The easy one:
-
-```sh
-open viewer/leaks.html
-```
-
-A dark page opens with a header of summary stats and a drop zone. **Drag `leaks.json` anywhere onto the page** (or click "Choose file…") and the graph appears:
-
-- Green nodes — reachable allocations
-- Red nodes — leaked but not in a cycle
-- Purple nodes — leaked *and* part of a retain cycle
-- Edges — pointers stored inside one allocation that land inside another
-- Node radius scales with `log(size)`
-
-Interactions: scroll to zoom, drag the background to pan, drag a node to pin it, hover for a tooltip with address / size / zone.
-
-The second option, if your browser is fussy about local `file://` loads and you want the `?file=` query-param flow:
+The viewer is a **Vite + React + TypeScript** app under `viewer/`. It reads a committed `viewer/public/leaks.json` — the idea is you capture a snapshot **once**, commit it, and from then on `npm run dev` just works.
 
 ```sh
 cd viewer
-python3 -m http.server 8000
-# then open http://localhost:8000/leaks.html?file=../leaks.json
+npm install          # one-time
+npm run dev          # opens http://localhost:5173
 ```
+
+A sample `leaks.json` is shipped so the UI renders immediately. Replace it with your own capture:
+
+```sh
+# from the project root, with LeakyVictim running:
+sudo ./.build/release/heapscope <pid> --output viewer/public/leaks.json
+```
+
+The page is single-page, dark, periwinkle-accented:
+
+- **Hero** with the exact Mach / libmalloc APIs the analyzer calls
+- **Platform cards** explaining the four pipeline phases
+- **Analysis** — stats, filter toolbar, force graph, per-zone breakdown (Allocations-instrument style), retain-cycle list (Leaks-instrument style)
+- **Notable bugs map** — curated gallery of real memory issues at major tech companies, pinned to HQ on a dark US map
+
+Interactive controls:
+
+- Filter chips (All / Reachable / Leaked / In cycle) or `1`–`4`
+- Click a zone row → filters the graph to that zone
+- Click a cycle row → flies the camera to that cycle with pulse rings
+- Click a node → highlights its neighbors and opens an inline detail card
+- Search box filters by address substring
+- Scroll to zoom, drag background to pan, drag a node to pin, `Esc` to reset
+- Map: hover a triangle for a preview, click for the case summary, `←`/`→` walk through all 10
 
 ## TL;DR — one paste
 
 ```sh
-# terminal A
-./.build/release/LeakyVictim
+# terminal A — keep the victim running
+./.build/release/LeakyVictim &
+VICTIM=$!
 
-# terminal B (use the pid printed in terminal A)
-sudo ./.build/release/heapscope <pid> --output leaks.json
-open viewer/leaks.html
-# drag leaks.json onto the page
+# capture once
+sudo ./.build/release/heapscope $VICTIM --output viewer/public/leaks.json
+kill $VICTIM
+
+# dev the UI
+cd viewer && npm install && npm run dev
 ```
 
 ## Trying it on a real app
