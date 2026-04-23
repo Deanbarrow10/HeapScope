@@ -1,21 +1,21 @@
 # HeapScope
 
-A miniature leak analyzer for macOS. You point it at a running process and it answers two questions: **which allocations are unreachable from any root**, and **which of those form retain cycles**. The output is a JSON file plus a single-page D3 viewer that renders the heap as a force-directed graph — green nodes are reachable, red are leaked, purple are leaked *and* part of a cycle.
+A miniature leak analyzer for macOS. You point it at a running process and it answers two questions: **which allocations are unreachable from any root**, and **which of those form retain cycles**. The output is a `leaks.json` file plus a React + D3 viewer that renders the heap as a force-directed graph — green nodes are reachable, red are leaked, purple are leaked *and* part of a cycle.
 
 Heavily inspired by (and informed by reading about) Instruments' **Leaks** instrument.
 
 ```
-           +----------+        +-------------+       +---------------+
- pid  -->  | heapscope |  -->  | leaks.json  |  -->  | viewer/leaks  |
-           | (Swift)   |       | (nodes,     |       | .html (D3     |
-           +----------+       |  edges,      |       |  force graph) |
-                              |  cycles)     |       +---------------+
-                              +-------------+
+           +-----------+       +-------------+       +----------------+
+ pid  -->  | heapscope |  -->  | leaks.json  |  -->  | viewer/        |
+           | (Swift)   |       | (nodes,     |       | (Vite + React  |
+           +-----------+       |  edges,     |       |  + D3 graph)   |
+                               |  cycles)    |       +----------------+
+                               +-------------+
 ```
 
 - **`heapscope`** — the analyzer. Swift CLI that attaches via `task_for_pid`, enumerates every malloc zone, scans roots, runs BFS + Tarjan, and writes JSON.
 - **`LeakyVictim`** — a tiny C program with hand-crafted leaks (3 reachable blocks, 1 orphan, 1 retain cycle). Exists so you can see `heapscope` find something real without tracking down a buggy app.
-- **`viewer/leaks.html`** — a self-contained single-file web viewer. Drag a `leaks.json` onto it and you get an interactive graph with Apple-palette coloring, zoom/pan, drag-to-pin nodes, and hover tooltips.
+- **`viewer/`** — a Vite + React + TypeScript single-page app that loads `viewer/public/leaks.json` and renders an interactive D3 force graph with Apple-palette coloring, zoom/pan, drag-to-pin nodes, per-zone breakdown, retain-cycle list, and a curated gallery of real-world memory bugs.
 
 ## The algorithm, in 60 seconds
 
@@ -157,7 +157,11 @@ Expect lots of reachable allocations (dyld, CoreFoundation, libobjc caches, etc.
 Sources/HeapScopeC/        C shim for Mach / libmalloc APIs Swift can't express cleanly
 Sources/heapscope/         Swift analyzer (attach, enumerate, BFS, Tarjan, emit)
 Sources/LeakyVictim/       Victim process: 3 reachable, 1 plain leak, 1 retain cycle
-viewer/leaks.html          Single-file D3 force graph, drag-and-drop JSON
+viewer/                    Vite + React + TypeScript viewer (D3 force graph)
+viewer/public/leaks.json   Committed sample snapshot — overwrite with your own
+heapscope.entitlements     com.apple.security.cs.debugger (for task_for_pid)
+victim.entitlements        com.apple.security.get-task-allow (for LeakyVictim)
+sign.sh                    Ad-hoc codesigns both binaries with the above
 ```
 
 ## Known limitations
