@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Lets heapscope call task_for_pid on another user-space process when run
+         as root. Without this entitlement, taskgated-platform denies the call
+         on modern macOS even with SIP enabled and the user in _developer. -->
+    <key>com.apple.security.cs.debugger</key>
+    <true/>
+    <!-- Lets other tools (e.g. lldb) attach to heapscope itself. Harmless and
+         matches the implicit defaults unsigned binaries already get. -->
+    <key>com.apple.security.get-task-allow</key>
+    <true/>
+</dict>
+</plist>
